@@ -68,8 +68,8 @@ class QuantumCircuitBuilder:
         # Add input encoding layer
         if input_params is not None:
             # Encode input data using RY rotations
-            for i in range(min(len(input_params), self.num_qubits)):
-                qc.ry(input_params[i], i)
+            for i in range(len(input_params)):
+                qc.ry(input_params[i], i % self.num_qubits)
 
         # Add parameterized layers
         if weight_params is not None:

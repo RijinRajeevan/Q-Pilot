@@ -1,114 +1,69 @@
-# Q-Pilot: Quantum-Enhanced Vehicle Trajectory Prediction System
+# 🚦 Q-Pilot Live V4: Explainable Quantum Autonomous Engine
 
-Q-Pilot is a research-grade system that predicts future vehicle trajectories using both classical machine learning models and quantum neural networks. The system demonstrates the advantages of quantum computing in capturing complex nonlinear vehicle motion patterns.
+Q-Pilot V4 is a research-grade, real-time autonomous simulation engine tracking physical vehicles on the road using advanced Computer Vision, alongside an explainable AI pipeline that contrasts **Classical LSTMs** against **Quantum Neural Networks (QNNs)** in real-time.
 
-## Project Structure
+![Q-Pilot V4 Interface](https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4) *(Video processing mapped via CV)*
 
+## 🧠 Architectural Overview
+
+Our architecture ditches synthetic data and processes real physical pixels into quantum geometries executing at **30 FPS**.
+1. **Perception**: A local `YOLOv8n` + `DeepSORT` stack tracks cars.
+2. **Homography Transforms**: Camera perspective is mathematically flattened to absolute 2D road space vectors (`cv2.getPerspectiveTransform`).
+3. **Tracking Buffer**: Spatial behaviors form K=5 historical paths simulating instantaneous relative velocities.
+4. **Bayesian PyTorch Stack**: We execute 5x parallel **Monte Carlo** forward tensor passes over `LSTM` layers preserving Dropouts to find absolute statistical **Variance**.
+5. **Contextual QNN Contexts**: If targets undergo non-linear trajectory anomalies, `Qiskit` 4-qubit entangled nodes process the inputs dynamically against the LSTM paths.
+
+---
+
+## 🛠️ Step-By-Step Setup Guide
+
+You must establish both the Frontend (React/Vite) and Backend (PyTorch/FastAPI) environments.
+
+### 1. Build the Python Environment
+Run these commands in your project root to secure a sandbox environment and install all dependencies:
+```bash
+python -m venv .venv
+
+# On Windows:
+.\.venv\Scripts\activate
+# On Mac/Linux:
+source .venv/bin/activate
+
+pip install -r requirements.txt
 ```
-qpilot/
-│
-├── data/                 # Dataset storage
-├── notebooks/            # Jupyter notebooks for exploration
-├── src/                  # Source code
-│   ├── dataset.py        # Data loading and processing
-│   ├── preprocessing.py  # Data cleaning and normalization
-│   ├── feature_engineering.py  # Feature extraction and engineering
-│   ├── classical_model.py     # Classical ML models (Linear Regression, LSTM)
-│   ├── quantum_encoding.py    # Quantum data encoding methods
-│   ├── quantum_model.py       # Quantum Neural Network implementation
-│   ├── train.py               # Training pipeline
-│   ├── evaluate.py            # Evaluation metrics
-│   └── utils.py               # Utility functions
-├── models/               # Saved trained models
-├── training/             # Training logs and checkpoints
-├── evaluation/           # Evaluation results
-├── dashboard/            # Streamlit dashboard application
-├── research_module/      # Research paper analyzer
-├── configs/              # Configuration files
-├── results/              # Experiment results
-├── requirements.txt      # Python dependencies
-└── README.md             # This file
+
+### 2. Prepare the Frontend
+Navigate into the React UI bucket and install the interface nodes:
+```bash
+cd frontend
+npm install
+cd ..
 ```
 
-## Setup Instructions
+### 3. Provide a Dataset (Video Feeding)
+Q-Pilot processes physical video files dynamically. 
+1. Create a `data/videos/` directory in the root if it does not exist.
+2. Download any standard Dashcam `.mp4` file and place it inside `data/videos/`.
+3. Rename the file exactly to: `highway.mp4`.
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Prepare dataset:
-   - For NGSIM dataset: Place in `data/ngsim/` directory
-   - For synthetic data: System includes built-in generator
+*(If you fail to provide a video file, the system will automatically fall back to activating your local webcam!)*
 
-4. Run training:
-   ```bash
-   python src/train.py
-   ```
+### 4. Boot the Orchestrator!
+Everything is orchestrated from a single execution script. Make sure your Python virtual environment is activated before running!
+```bash
+python main.py
+```
+> The architecture pulls the YOLO weights, locks the Vite interface, boots Uvicorn WebSockets under port `8000`, and opens the dashboard cleanly at `http://localhost:5174/`.
 
-5. Launch dashboard:
-   ```bash
-   streamlit run dashboard/app.py
-   ```
+---
 
-## Architecture Overview
+## 🔬 Explainable Mechanics 
 
-The system implements a dual approach to vehicle trajectory prediction:
-- Classical models (Linear Regression, LSTM)
-- Quantum Neural Network using Qiskit
+Our pipeline acts as a pure mathematical dashboard highlighting exactly *why* Quantum Models provide stabilization in chaotic autonomous scenarios. 
 
-Both approaches are evaluated using standardized metrics and visualized in real-time through the Streamlit dashboard.
+- **Prediction Cones:** The `React` frontend draws expanding track lines based purely on the generated `Monte-Carlo Variance` extracted per frame. High-uncertainty predictions draw visibly wider, chaotic cones.
+- **Learned Intent:** We discarded spatial hard-code threshold logic favoring a 3-layer `MLP Perceptron Classifier` rendering deep `Softmax` bounds declaring real-time physical intent (`Cruising`, `Braking`, `Aggressive Shift`).
+- **Benchmark Diagnostics:** Compare the Average Displacement Error (`ADE`) continuously matching LSTMs versus heavily entangled Quantum Subroutines dynamically in the HUD.
 
-## Key Features
-
-- Real-time comparison engine
-- Animated trajectory visualization
-- Quantum circuit visualization
-- Research paper analyzer
-- Controlled scenario testing
-- Performance metrics dashboard
-
-## Dataset Format
-
-Expected NGSIM dataset columns:
-- `x_position`: Vehicle x-coordinate
-- `y_position`: Vehicle y-coordinate
-- `velocity`: Vehicle speed
-- `acceleration`: Vehicle acceleration
-- `steering_angle`: Steering angle
-- `lane_id`: Lane identifier
-
-Sequence format: T=5 past steps, K=3 future steps
-
-## Core Modules
-
-1. **Data Pipeline**: Handles both real (NGSIM) and synthetic data
-2. **Classical Models**: Linear Regression and LSTM baselines
-3. **Quantum Model**: Variational Quantum Circuit with hybrid training
-4. **Evaluation Engine**: Comprehensive metrics calculation
-5. **Visualization Dashboard**: Interactive Streamlit interface
-6. **Research Module**: PDF analysis capabilities
-
-## 🧪 Model Performance Study (The Logic)
-
-The Q-Pilot system features a dynamic comparison engine that identifies the optimal model for different driving scenarios. Below is the logic used to determine model superiority:
-
-### 🏆 Model Winning Conditions
-
-| Model | Ideal Scenario | Steering Angle (rad) | Acceleration (m/s²) |
-| :--- | :--- | :--- | :--- |
-| **Linear** | Straight Highway | < 0.05 | < 0.5 |
-| **LSTM** | Gentle Curves | 0.05 - 0.20 | 0.5 - 1.5 |
-| **Random Forest** | Mid-range Maneuvers | 0.20 - 0.35 | 1.5 - 3.0 |
-| **Quantum (Q-Pilot)**| Sharp Turns / Braking | > 0.35 | > 3.0 |
-
-### 🧠 Why This Happens (The Science)
-
-1.  **Linear Model (Occam's Razor)**: In simple, steady-state motion, a straight line is the most accurate description. Complex models add "noise," whereas the Linear model provides perfect precision for constant-velocity trajectories.
-2.  **LSTM (Temporal Memory)**: LSTMs win during smooth, predictable curves because they remember the history of the trajectory. They are masters of "flow" and temporal consistency.
-3.  **Random Forest (Decision Boundaries)**: Random Forest excels in mid-range urban driving. It uses discrete "decision branches" to handle specific thresholds (like switching lanes) where motion isn't a smooth curve but isn't a straight line either.
-4.  **Quantum Neural Network (Hilbert Space)**: The Quantum model wins in extreme scenarios (sharp swerves/emergency stops). It maps input data into a **High-Dimensional Hilbert Space**, allowing it to solve exponential nonlinearities that classical models simply cannot "see."
-
-## Final Impact Statement
-
-"Quantum Neural Networks demonstrate improved capability in capturing complex nonlinear vehicle motion patterns compared to classical machine learning models."
+## 🗑️ Code Audit Notice
+If migrating from V1 builds, note that `dashboard/` (Streamlit apps) and `.streamlit/` configs are 100% obsolete. The entire tracking geometry now executes completely decoupled inside `frontend/` (TailwindCSS/Vite) & `src/inference_engine.py`.

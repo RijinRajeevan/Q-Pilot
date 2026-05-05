@@ -3,7 +3,6 @@ torchvision>=0.13.0
 qiskit==0.46.3
 qiskit-terra==0.46.3
 qiskit-machine-learning==0.5.0
-streamlit>=1.18.0
 pandas>=1.5.0
 numpy>=1.21.0
 scikit-learn>=1.1.0
@@ -12,3 +11,12 @@ seaborn>=0.11.0
 plotly>=5.11.0
 tqdm>=4.64.0
 PyPDF2>=3.0.0
+ultralytics>=8.0.0
+opencv-python>=4.7.0
+filterpy>=1.4.5
+fastapi>=0.100.0
+uvicorn>=0.23.0
+websockets>=11.0.3
+python-multipart>=0.0.6
+mediapipe>=0.10.0
+scipy>=1.9.0

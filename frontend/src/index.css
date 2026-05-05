@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Tesla White Palette */
+  --color-tesla-white: #FFFFFF;
+  --color-tesla-black: #171A20;
+  --color-tesla-gray: #5C5E62;
+  --color-tesla-light: #F4F4F4;
+  --color-tesla-border: #E0E0E0;
+  --color-tesla-blue: #3E6AE1;
+  --color-tesla-blue-light: #EBF0FF;
+
+  --animate-fade-up: fade-up 0.6s ease both;
+  --animate-counter: counter 2s ease both;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── Global Reset ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #FFFFFF;
+  color: #171A20;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ── Selection ─────────────────────────────────────────── */
+::selection { background: rgba(62,106,225,0.15); color: #171A20; }
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #F4F4F4; }
+::-webkit-scrollbar-thumb { background: #C8C8C8; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #3E6AE1; }
+
+/* ── Typography Helpers ───────────────────────────────── */
+.tesla-h1 {
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.0;
+  color: #171A20;
+}
+.tesla-h2 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  color: #171A20;
+}
+.tesla-h3 {
+  font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #171A20;
+}
+.tesla-body {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: #5C5E62;
+}
+.tesla-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #3E6AE1;
+}
+
+/* ── Buttons ───────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2.25rem;
+  border-radius: 0.375rem;
+  background: #171A20;
+  color: #FFFFFF;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover { background: #3E3F42; transform: translateY(-1px); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2.25rem;
+  border-radius: 0.375rem;
+  background: rgba(255,255,255,0.15);
+  color: #FFFFFF;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.2s;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.4);
+  backdrop-filter: blur(8px);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.25); }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2.25rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: #171A20;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.2s;
+  cursor: pointer;
+  border: 1.5px solid #171A20;
+}
+.btn-outline:hover { background: #F4F4F4; }
+
+/* ── Cards ─────────────────────────────────────────────── */
+.tesla-card {
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+/* ── Section spacing ───────────────────────────────────── */
+.section-pad { padding: 5rem 1.5rem; }
+@media (min-width: 1024px) { .section-pad { padding: 7rem 4rem; } }
+
+/* ── Metric tag ────────────────────────────────────────── */
+.risk-safe    { background: #ECFDF5; color: #059669; border: 1px solid #6EE7B7; }
+.risk-caution { background: #FFFBEB; color: #D97706; border: 1px solid #FCD34D; }
+.risk-danger  { background: #FEF2F2; color: #DC2626; border: 1px solid #FCA5A5; }
+
+/* ── Animate on view ───────────────────────────────────── */
+.anim-ready { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.anim-ready.anim-in { opacity: 1; transform: translateY(0); }

@@ -1,162 +1,90 @@
 """
-Main execution script for Q-Pilot system.
-Orchestrates the complete workflow from data to visualization.
+Main execution script for Q-Pilot Live.
+Orchestrates the FastAPI backend and Vite frontend servers.
 """
 import os
 import sys
 import argparse
-import json
-from datetime import datetime
-
-# Add src directory to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-
-from dataset import generate_synthetic_trajectory
-from preprocessing import prepare_data_pipeline
-from classical_model import ClassicalModelEnsemble
-from quantum_model import create_quantum_model
-from train import ModelTrainer
-from evaluate import ModelEvaluator
-from utils import save_model
-
-
-def load_config(config_path="configs/system_config.json"):
-    """
-    Load system configuration
-
-    Args:
-        config_path (str): Path to configuration file
-
-    Returns:
-        dict: Configuration dictionary
-    """
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        return config
-    except Exception as e:
-        print(f"Error loading configuration: {e}")
-        return {}
-
+import subprocess
+import time
 
 def setup_environment():
-    """
-    Setup environment and directories
-    """
+    """Setup environment and directories"""
     directories = [
         'data',
         'models',
         'training',
         'evaluation',
-        'results'
+        'results',
+        'api'
     ]
-
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
         print(f"Ensured directory exists: {directory}")
 
-
-def run_pipeline(config):
-    """
-    Run complete Q-Pilot pipeline
-
-    Args:
-        config (dict): System configuration
-    """
-    print("🚀 Starting Q-Pilot Pipeline")
-    print("=" * 50)
-
-    # Initialize trainer
-    trainer = ModelTrainer(config.get('training', {}))
-
-    # Run training
+def run_backend():
+    """Launch FastAPI Backend"""
+    print("Starting Q-Pilot Live Backend (FastAPI)...")
     try:
-        results = trainer.run_full_training(use_ngsim=False)
-        print("\n✅ Training pipeline completed successfully!")
+        cmd = [sys.executable, "-m", "uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+        # Use Popen to run in background
+        return subprocess.Popen(cmd)
     except Exception as e:
-        print(f"❌ Training failed: {e}")
-        return
+        print(f"Error launching backend: {e}")
+        return None
 
-    # Save results
-    print("\n💾 Saving results...")
-    model_dir, results_dir = trainer.save_models_and_results()
-    print(f"Results saved to: {results_dir}")
-
-    # Print final impact statement
-    print("\n" + "=" * 50)
-    print("🔬 FINAL IMPACT STATEMENT")
-    print("=" * 50)
-    print("Quantum Neural Networks demonstrate improved capability in capturing")
-    print("complex nonlinear vehicle motion patterns compared to classical")
-    print("machine learning models.")
-    print("=" * 50)
-
-
-def run_dashboard():
-    """
-    Launch Streamlit dashboard
-    """
-    print("📊 Launching Q-Pilot Dashboard...")
+def run_frontend():
+    """Launch Vite Frontend"""
+    print("Starting Q-Pilot Live Frontend (React/Vite)...")
+    frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
+    
+    if not os.path.exists(frontend_dir):
+        print(f"Frontend directory not found at {frontend_dir}. Please run 'npm create vite' setup.")
+        return None
+        
     try:
-        # Use the current Python interpreter to run streamlit as a module
-        # This ensures the correct environment and dependencies are used
-        cmd = f'{sys.executable} -m streamlit run dashboard/app.py'
-        # Set PYTHONPATH and encoding environment variables
-        os.environ['PYTHONPATH'] = os.path.dirname(os.path.abspath(__file__))
-        os.environ['PYTHONIOENCODING'] = 'utf-8'
-        os.system(cmd)
+        # Use shell=True for npm commands on Windows
+        return subprocess.Popen("npm run dev", cwd=frontend_dir, shell=True)
     except Exception as e:
-        print(f"Error launching dashboard: {e}")
-
+        print(f"Error launching frontend: {e}")
+        return None
 
 def main():
-    """
-    Main execution function
-    """
-    parser = argparse.ArgumentParser(description="Q-Pilot: Quantum Vehicle Trajectory Prediction System")
-    parser.add_argument('--mode', choices=['train', 'dashboard', 'full'], default='full',
-                        help='Execution mode: train, dashboard, or full (default)')
-    parser.add_argument('--config', default='configs/system_config.json',
-                        help='Path to configuration file')
-
+    parser = argparse.ArgumentParser(description="Q-Pilot Live: Quantum Vehicle Trajectory Prediction System")
+    parser.add_argument('--mode', choices=['backend', 'frontend', 'full'], default='full',
+                        help='Execution mode: backend (FastAPI), frontend (Vite), or full. (Default: full)')
     args = parser.parse_args()
 
-    # Load configuration
-    config = load_config(args.config)
-
-    # Setup environment
     setup_environment()
 
-    if args.mode == 'train':
-        # Run training only
-        run_pipeline(config)
-    elif args.mode == 'dashboard':
-        # Run dashboard only
-        run_dashboard()
-    else:
-        # Run full pipeline
-        print("Q-Pilot System")
-        print("=" * 50)
-        print("Modes available:")
-        print("1. Training pipeline")
-        print("2. Interactive dashboard")
-        print("3. Full system (training + dashboard)")
+    processes = []
+    
+    if args.mode in ['backend', 'full']:
+        backend_proc = run_backend()
+        if backend_proc:
+            processes.append(backend_proc)
+            
+    if args.mode in ['frontend', 'full']:
+        if args.mode == 'full':
+            print("Waiting for backend to initialize...")
+            time.sleep(3)
+        frontend_proc = run_frontend()
+        if frontend_proc:
+            processes.append(frontend_proc)
 
-        choice = input("\nEnter your choice (1/2/3): ").strip()
-
-        if choice == '1':
-            run_pipeline(config)
-        elif choice == '2':
-            run_dashboard()
-        elif choice == '3':
-            run_pipeline(config)
-            print("\nLaunching dashboard...")
-            run_dashboard()
+    try:
+        # Keep main thread alive
+        if processes:
+            print("\nSystem running! Press Ctrl+C to terminate all services.")
+            while True:
+                time.sleep(1)
         else:
-            print("Invalid choice. Running full system by default.")
-            run_pipeline(config)
-            run_dashboard()
-
+            print("No processes started.")
+    except KeyboardInterrupt:
+        print("\nStopping services...")
+        for p in processes:
+            p.terminate()
+        print("Shutdown complete.")
 
 if __name__ == "__main__":
     main()
