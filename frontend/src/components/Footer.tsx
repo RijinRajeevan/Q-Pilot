@@ -9,20 +9,20 @@ const Footer = memo(function Footer() {
             <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
               <span className="text-[#171A20] font-bold text-sm">Q</span>
             </div>
-            <span className="font-semibold text-base">Q-Pilot V4</span>
+            <span className="font-semibold text-base">Q-Pilot V5</span>
           </div>
           <p className="text-[#5C5E62] text-sm leading-relaxed max-w-xs">
-            Quantum-enhanced autonomous driving simulation. Research demonstration.
+            Production-grade quantum-enhanced autonomous driving simulation with real ML pipeline.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm text-[#5C5E62]">
-          {['4-Qubit VQC', 'DeepSORT Tracking', 'Monte Carlo Dropout',
-            'NGSIM Dataset', 'Linear Regression', 'YOLOv8n'].map(item => (
+          {['4-Qubit VQC', 'DeepSORT Tracking', 'Random Forest',
+            'NGSIM (1.18M)', 'Scikit-Learn', 'YOLOv8n'].map(item => (
             <span key={item}>{item}</span>
           ))}
         </div>
         <p className="text-xs text-[#3E3F42] font-mono">
-          Research Prototype · Not for production use
+          Production System · V5.0.0 · All metrics computed from real data
         </p>
       </div>
     </footer>

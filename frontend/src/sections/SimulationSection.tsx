@@ -289,6 +289,12 @@ export default function SimulationSection({ sectionRef }: { sectionRef: React.Re
     ? `${Math.max(0, 100 - t.metrics.qnn.variance * 100).toFixed(0)}%` : '—';
   const objects = t?.objects ?? [];
 
+  // sklearn live metrics from WebSocket
+  const sk = t?.sklearn_metrics;
+  const activeModel = sk?.winner ?? '—';
+  const modelR2 = sk?.qnn_r2?.toFixed(4) ?? '—';
+  const modelMSE = sk?.qnn_mse?.toFixed(3) ?? '—';
+
   // Scene-level risk
   const topRisk = objects.find(o => o.risk === 'danger') ? 'danger'
     : objects.find(o => o.risk === 'caution') ? 'caution' : 'safe';
@@ -402,9 +408,16 @@ export default function SimulationSection({ sectionRef }: { sectionRef: React.Re
                   </span>
                   <span className="text-white/50 text-xs ml-1">· {activeSc.icon} {activeSc.label}</span>
                 </div>
-                <span className="text-white/60 text-xs font-mono">
-                  {t?.frame != null ? `Frame ${t.frame}` : '—'}
-                </span>
+                <div className="flex items-center gap-3">
+                  {isLive && (
+                    <span className="bg-[#6366F1]/80 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm">
+                      ⚛️ {activeModel}
+                    </span>
+                  )}
+                  <span className="text-white/60 text-xs font-mono">
+                    {t?.frame != null ? `Frame ${t.frame}` : '—'}
+                  </span>
+                </div>
               </div>
 
               {/* Offline overlay */}
@@ -427,11 +440,12 @@ export default function SimulationSection({ sectionRef }: { sectionRef: React.Re
             </div>
 
             {/* Bottom metric strip */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <MetricCard label="Active Model" value={activeModel} sub="best performer" />
               <MetricCard label="FPS" value={fps} sub="render rate" />
               <MetricCard label="Latency" value={`${latency}ms`} sub="system latency" />
+              <MetricCard label="QNN R²" value={modelR2} sub="model accuracy" />
               <MetricCard label="QNN ADE" value={ade} sub="displacement error" />
-              <MetricCard label="Q-Confidence" value={conf} sub="monte carlo" />
             </div>
           </div>
 

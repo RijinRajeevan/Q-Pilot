@@ -120,11 +120,11 @@ function ScenarioDetail({ scenario }: { scenario: Scenario }) {
         {/* Description */}
         <p className="text-sm text-[#5C5E62] leading-relaxed">{d.description}</p>
 
-        {/* Stats grid */}
+        {/* Stats grid — enriched with real data */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#FAFAFA] p-4 rounded-xl border border-[#F0F0F0]">
             <div className="text-[10px] uppercase tracking-widest text-[#5C5E62] mb-1 font-semibold">QNN Advantage</div>
-            <div className="text-lg font-bold text-[#6366F1]">{d.qnn_advantage}</div>
+            <div className="text-lg font-bold text-[#6366F1]">{d.qnn_advantage ?? 'Training...'}</div>
           </div>
           <div className="bg-[#FAFAFA] p-4 rounded-xl border border-[#F0F0F0]">
             <div className="text-[10px] uppercase tracking-widest text-[#5C5E62] mb-1 font-semibold">Complexity</div>
@@ -136,6 +136,33 @@ function ScenarioDetail({ scenario }: { scenario: Scenario }) {
             </div>
           </div>
         </div>
+
+        {/* Real filtered stats from backend */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-[#EEF2FF] p-3 rounded-xl border border-[#C7D2FE]">
+            <div className="text-[10px] uppercase tracking-widest text-[#6366F1] mb-0.5 font-semibold">Vehicles</div>
+            <div className="text-lg font-bold text-[#171A20]">{d.vehicle_count?.toLocaleString() ?? '—'}</div>
+          </div>
+          <div className="bg-[#EEF2FF] p-3 rounded-xl border border-[#C7D2FE]">
+            <div className="text-[10px] uppercase tracking-widest text-[#6366F1] mb-0.5 font-semibold">Data Points</div>
+            <div className="text-lg font-bold text-[#171A20]">{d.filtered_rows?.toLocaleString() ?? '—'}</div>
+          </div>
+          <div className="bg-[#EEF2FF] p-3 rounded-xl border border-[#C7D2FE]">
+            <div className="text-[10px] uppercase tracking-widest text-[#6366F1] mb-0.5 font-semibold">Avg Speed</div>
+            <div className="text-lg font-bold text-[#171A20]">{d.avg_velocity ?? '—'} <span className="text-xs font-normal text-[#5C5E62]">ft/s</span></div>
+          </div>
+        </div>
+
+        {/* Winner badge */}
+        {d.winner && d.winner !== '—' && (
+          <div className="flex items-center gap-2 bg-[#F0FDF4] border border-emerald-200 rounded-lg px-4 py-2.5">
+            <span className="text-lg">🏆</span>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-emerald-700 font-semibold">Best Model</div>
+              <div className="text-sm font-bold text-emerald-800">{d.winner}</div>
+            </div>
+          </div>
+        )}
       </motion.div>
     </AnimatePresence>
   );

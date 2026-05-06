@@ -33,6 +33,7 @@ const Navbar = memo(function Navbar({ onSim, onTech }: { onSim: () => void; onTe
       <div className="hidden md:flex items-center gap-8">
         {[
           ['Simulation', 'simulation'],
+          ['Scenarios', 'scenarios'],
           ['Quantum', 'quantum'],
           ['Models', 'models'],
           ['Dataset', 'dataset'],

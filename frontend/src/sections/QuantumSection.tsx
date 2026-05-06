@@ -130,7 +130,10 @@ export default function QuantumSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
   const telemetry = useTelemetryStore(s => s.telemetry);
+  const activeScenario = useTelemetryStore(s => s.activeScenario);
   const variance = telemetry?.metrics?.qnn?.variance?.toFixed(4) ?? '—';
+  const qnnLatency = telemetry?.metrics?.qnn?.latency?.toFixed(0) ?? '—';
+  const qnnAde = telemetry?.metrics?.qnn?.ade?.toFixed(3) ?? '—';
 
   return (
     <section id="quantum" className="bg-[#FAFAFA] section-pad border-t border-[#E0E0E0]">
@@ -157,11 +160,28 @@ export default function QuantumSection() {
           <QuantumCircuitSVG animated={inView} />
         </div>
 
-        {/* Live variance indicator */}
-        <div className="mt-4 flex items-center gap-3">
-          <span className="text-xs font-mono text-[#5C5E62]">Live shot variance:</span>
-          <span className="text-xs font-mono font-bold text-[#6366F1]">{variance}</span>
-          <span className="text-xs text-[#5C5E62]">(lower = higher confidence)</span>
+        {/* Live metrics panel */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="tesla-card">
+            <span className="tesla-label text-[10px]">Shot Variance</span>
+            <div className="text-lg font-bold text-[#6366F1] mt-1 font-mono">{variance}</div>
+            <div className="text-[10px] text-[#5C5E62]">lower = higher confidence</div>
+          </div>
+          <div className="tesla-card">
+            <span className="tesla-label text-[10px]">QNN Latency</span>
+            <div className="text-lg font-bold text-[#171A20] mt-1 font-mono">{qnnLatency}ms</div>
+            <div className="text-[10px] text-[#5C5E62]">per-frame inference</div>
+          </div>
+          <div className="tesla-card">
+            <span className="tesla-label text-[10px]">QNN ADE</span>
+            <div className="text-lg font-bold text-[#171A20] mt-1 font-mono">{qnnAde}</div>
+            <div className="text-[10px] text-[#5C5E62]">avg displacement error</div>
+          </div>
+          <div className="tesla-card">
+            <span className="tesla-label text-[10px]">Scenario</span>
+            <div className="text-lg font-bold text-[#171A20] mt-1 capitalize">{activeScenario.replace('_', ' ')}</div>
+            <div className="text-[10px] text-[#5C5E62]">active prediction mode</div>
+          </div>
         </div>
 
         {/* Info grid */}

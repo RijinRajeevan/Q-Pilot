@@ -27,7 +27,7 @@ class SklearnBenchmark:
         import pandas as pd
         from pathlib import Path
 
-        data_path = Path("data/8ect-6jqj.csv")
+        data_path = Path("data/ngsim.csv")
         try:
             df = pd.read_csv(data_path)
             df.columns = [c.strip() for c in df.columns]

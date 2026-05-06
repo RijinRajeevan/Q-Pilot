@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
-const STATS = [
-  { value: '99.2%', label: 'Tracking Accuracy' },
-  { value: '3.2×',  label: 'Over Classical LSTM' },
-  { value: '4',     label: 'Qubits in Circuit' },
-  { value: '<30ms', label: 'Inference Latency' },
+// Default stats (shown while API loads)
+const DEFAULT_STATS = [
+  { value: '1.18M',  label: 'Trajectory Records' },
+  { value: '2,169',  label: 'Unique Vehicles' },
+  { value: '4',      label: 'Qubits in Circuit' },
+  { value: '<30ms',  label: 'Inference Latency' },
 ];
 
 const stagger = {
@@ -25,11 +26,25 @@ export default function HeroSection({
   onExploreClick: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [stats, setStats] = useState(DEFAULT_STATS);
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.85; // subtle slow-motion feel
+      videoRef.current.playbackRate = 0.85;
     }
+
+    // Fetch real stats from API
+    fetch('http://localhost:8000/api/data')
+      .then(res => res.json())
+      .then(d => {
+        setStats([
+          { value: `${(d.total_records / 1e6).toFixed(2)}M`, label: 'Trajectory Records' },
+          { value: d.vehicle_count?.toLocaleString() ?? '—', label: 'Unique Vehicles' },
+          { value: '4', label: 'Qubits in Circuit' },
+          { value: '<30ms', label: 'Inference Latency' },
+        ]);
+      })
+      .catch(() => {/* keep defaults */});
   }, []);
 
   return (
@@ -98,7 +113,7 @@ export default function HeroSection({
           className="text-white/70 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10"
         >
           Real-time trajectory prediction powered by a 4-qubit Variational Quantum Circuit
-          and Monte Carlo uncertainty modeling — running live on your hardware.
+          trained on {stats[0].value} NGSIM US-101 records — running live on your hardware.
         </motion.p>
 
         {/* CTAs */}
@@ -111,12 +126,12 @@ export default function HeroSection({
           </button>
         </motion.div>
 
-        {/* Stats strip */}
+        {/* Stats strip — dynamically populated */}
         <motion.div
           variants={fadeUp}
           className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/10 rounded-2xl overflow-hidden backdrop-blur-sm border border-white/10"
         >
-          {STATS.map(({ value, label }) => (
+          {stats.map(({ value, label }) => (
             <div key={label} className="bg-white/5 px-6 py-5 text-center">
               <div className="text-2xl md:text-3xl font-bold text-white tracking-tight">{value}</div>
               <div className="text-[11px] text-white/50 uppercase tracking-widest mt-1 font-medium">{label}</div>

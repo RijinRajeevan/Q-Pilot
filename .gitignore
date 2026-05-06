@@ -24,3 +24,8 @@ Thumbs.db
 
 # Node (in case run from root)
 node_modules/
+
+# Datasets and Models
+*.csv
+data/models/
+data/ngsim.csv
