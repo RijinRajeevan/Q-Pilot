@@ -1,87 +1,194 @@
+"""
+Q-Pilot V7 — Trajectory History Buffer
+Maintains per-object sliding window of kinematic states for sequence-based prediction.
+20-frame history, computes velocity, acceleration, heading, delta positions.
+"""
 import collections
 import numpy as np
+import math
+
 
 class TrajectoryBuffer:
-    def __init__(self, time_steps=5, fps_estimate=30):
-        self.time_steps = time_steps
+    """
+    Per-object trajectory history buffer.
+    Stores 20-frame sliding windows of kinematic features per tracked object.
+    Provides ready-to-use input sequences for GRU/LSTM/QNN inference.
+    """
+
+    def __init__(self, history_len=20, predict_len=5, fps_estimate=20):
+        self.history_len = history_len
+        self.predict_len = predict_len
         self.dt = 1.0 / fps_estimate
-        # obj_id -> deque of features
-        self.buffers = collections.defaultdict(lambda: collections.deque(maxlen=self.time_steps))
-        
-    def update(self, active_tracks, ego_resolution=(640, 360)):
+
+        # obj_id -> deque of feature dicts
+        self.buffers: dict[int, collections.deque] = {}
+
+        # obj_id -> class_name
+        self.class_map: dict[int, str] = {}
+
+    def update(self, tracks, class_map: dict, frame_w=640, frame_h=360):
         """
-        Updates the buffer given the new frame's SORT tracks.
-        active_tracks: format [[x1, y1, x2, y2, id], ...]
-        ego_resolution: Base reference tuple to compute ego-relative positions.
+        Update buffer with new frame's tracked objects.
+
+        Args:
+            tracks: (N, 5) array of [x1, y1, x2, y2, track_id]
+            class_map: dict mapping track_id -> class_name
+            frame_w, frame_h: frame resolution for normalization
         """
-        cx_ego, cy_ego = ego_resolution[0] / 2.0, ego_resolution[1] # Ego is bottom center
+        ego_cx = frame_w / 2.0
+        ego_cy = frame_h  # Ego is at bottom-center
+
         current_ids = set()
-        
-        for track in active_tracks:
-            x1, y1, x2, y2, obj_id = track
-            obj_id = int(obj_id)
-            current_ids.add(obj_id)
-            
-            # Compute center of object
-            cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
-            
-            # Center relativity to Ego
-            rel_x = cx - cx_ego
-            rel_y = cy_ego - cy  # Y grows upwards from ego's perspective
-            
-            # Normalize spatial layout to ~[0, 1] realm assuming 640x360
-            norm_x = rel_x / (ego_resolution[0] / 2.0)
-            norm_y = rel_y / ego_resolution[1]
-            
-            # Compute derivatives if we have history
-            prev = self.buffers[obj_id][-1] if len(self.buffers[obj_id]) > 0 else None
+
+        for trk in tracks:
+            x1, y1, x2, y2, tid = trk
+            tid = int(tid)
+            current_ids.add(tid)
+
+            # Store class
+            if tid in class_map:
+                self.class_map[tid] = class_map[tid]
+
+            # Compute center
+            cx = (x1 + x2) / 2.0
+            cy = (y1 + y2) / 2.0
+            bw = x2 - x1
+            bh = y2 - y1
+
+            # Relative to ego (normalized)
+            rel_x = (cx - ego_cx) / (frame_w / 2.0)  # [-1, 1]
+            rel_y = (ego_cy - cy) / frame_h           # [0, 1] (higher = further away)
+
+            # Initialize buffer if new track
+            if tid not in self.buffers:
+                self.buffers[tid] = collections.deque(maxlen=self.history_len)
+
+            prev = self.buffers[tid][-1] if len(self.buffers[tid]) > 0 else None
+
+            # Compute velocity (normalized units/frame)
             if prev is not None:
-                vel_x = (norm_x - prev['nx']) / self.dt
-                vel_y = (norm_y - prev['ny']) / self.dt
-                
-                prev_vx, prev_vy = prev['vx'], prev['vy']
-                acc_x = (vel_x - prev_vx) / self.dt
-                acc_y = (vel_y - prev_vy) / self.dt
+                dx = rel_x - prev['rel_x']
+                dy = rel_y - prev['rel_y']
+                # EMA smoothing
+                alpha = 0.4
+                vx = alpha * (dx / self.dt) + (1 - alpha) * prev['vx']
+                vy = alpha * (dy / self.dt) + (1 - alpha) * prev['vy']
+                # Acceleration
+                ax = alpha * ((vx - prev['vx']) / self.dt) + (1 - alpha) * prev['ax']
+                ay = alpha * ((vy - prev['vy']) / self.dt) + (1 - alpha) * prev['ay']
+                # Heading angle
+                heading = math.atan2(dy, dx) if (abs(dx) > 1e-6 or abs(dy) > 1e-6) else prev['heading']
             else:
-                vel_x, vel_y, acc_x, acc_y = 0.0, 0.0, 0.0, 0.0
-                
+                vx, vy = 0.0, 0.0
+                ax, ay = 0.0, 0.0
+                heading = 0.0
+
+            # Speed magnitude
+            speed = math.sqrt(vx ** 2 + vy ** 2)
+
+            # Distance from ego
+            dist_from_ego = math.sqrt(rel_x ** 2 + rel_y ** 2)
+
+            # Lane offset (approximate: how far laterally from center)
+            lane_offset = rel_x
+
             state = {
-                'px': cx, 'py': cy,      # True Pixel coordinates
-                'nx': norm_x, 'ny': norm_y, # Normalized Coordinates
-                'vx': vel_x, 'vy': vel_y,   # Normalized Velocity
-                'ax': acc_x, 'ay': acc_y    # Normalized Acceleration
+                # Pixel coordinates (for overlay rendering)
+                'px': float(cx),
+                'py': float(cy),
+                'bw': float(bw),
+                'bh': float(bh),
+                # Normalized coordinates
+                'rel_x': float(rel_x),
+                'rel_y': float(rel_y),
+                # Kinematics (normalized)
+                'vx': float(vx),
+                'vy': float(vy),
+                'ax': float(ax),
+                'ay': float(ay),
+                'speed': float(speed),
+                'heading': float(heading),
+                # Spatial features
+                'lane_offset': float(lane_offset),
+                'dist_from_ego': float(dist_from_ego),
             }
-            
-            self.buffers[obj_id].append(state)
-            
-        # Optional: Prune dead tracks
+
+            self.buffers[tid].append(state)
+
+        # Prune dead tracks (not seen for this frame)
         dead_keys = set(self.buffers.keys()) - current_ids
         for k in dead_keys:
             del self.buffers[k]
-            
-    def get_ready_tensors(self):
+            if k in self.class_map:
+                del self.class_map[k]
+
+    def get_sequence_inputs(self, min_history=10):
         """
-        Returns active objects with full T=5 sequential history ready for PyTorch batched inference.
-        Returns: 
-           ids: [list of obj_ids]
-           batch: [batch_size, T=5, features=6]  (assume [nx, ny, vx, vy, ax, ay])
-           pixels: [list of current (px, py) for drawing overlays]
+        Get input sequences for trajectory prediction models.
+        Only returns tracks with at least `min_history` frames of data.
+
+        Returns:
+            ids: list of track IDs
+            sequences: np.array of shape (N, min_history, n_features)
+            pixel_positions: list of current (px, py) for overlay
+            kinematics: list of dicts with current vel/accel/heading per object
         """
-        ready_ids = []
-        batch = []
+        ids = []
+        sequences = []
         pixels = []
-        
-        for obj_id, history in self.buffers.items():
-            if len(history) == self.time_steps:
-                ready_ids.append(obj_id)
+        kinematics = []
+
+        # Feature order: rel_x, rel_y, vx, vy, ax, ay, heading, lane_offset, speed, dist_from_ego
+        feature_keys = ['rel_x', 'rel_y', 'vx', 'vy', 'ax', 'ay',
+                        'heading', 'lane_offset', 'speed', 'dist_from_ego']
+
+        for tid, history in self.buffers.items():
+            if len(history) >= min_history:
+                ids.append(tid)
                 pixels.append((history[-1]['px'], history[-1]['py']))
+
+                # Extract last min_history frames as feature matrix
+                recent = list(history)[-min_history:]
                 seq = []
-                for point in history:
-                    seq.append([point['nx'], point['ny'], point['vx'], point['vy'], point['ax'], point['ay']])
-                batch.append(seq)
-                
-        if len(batch) == 0:
-            return [], None, []
-            
-        # Return as normalized numpy array ready for torch.from_numpy()
-        return ready_ids, np.array(batch, dtype=np.float32), pixels
+                for frame_state in recent:
+                    feat_vec = [frame_state[k] for k in feature_keys]
+                    seq.append(feat_vec)
+                sequences.append(seq)
+
+                # Current kinematics for display
+                last = history[-1]
+                kinematics.append({
+                    'vx': last['vx'],
+                    'vy': last['vy'],
+                    'ax': last['ax'],
+                    'ay': last['ay'],
+                    'speed': last['speed'],
+                    'heading': last['heading'],
+                    'dist_from_ego': last['dist_from_ego'],
+                    'lane_offset': last['lane_offset'],
+                })
+
+        if not sequences:
+            return [], None, [], []
+
+        return ids, np.array(sequences, dtype=np.float32), pixels, kinematics
+
+    def get_all_tracks_info(self):
+        """Get basic info for all currently buffered tracks."""
+        info = {}
+        for tid, history in self.buffers.items():
+            if len(history) > 0:
+                last = history[-1]
+                info[tid] = {
+                    'px': last['px'],
+                    'py': last['py'],
+                    'bw': last['bw'],
+                    'bh': last['bh'],
+                    'vx': last['vx'],
+                    'vy': last['vy'],
+                    'speed': last['speed'],
+                    'heading': last['heading'],
+                    'history_len': len(history),
+                    'class': self.class_map.get(tid, 'car'),
+                }
+        return info

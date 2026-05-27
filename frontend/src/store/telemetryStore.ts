@@ -11,12 +11,18 @@ export interface TrajectoryPoint {
 export interface TrackedObject {
   id: number;
   current: { x: number; y: number };
+  bbox?: { x1: number; y1: number; x2: number; y2: number };
   confidence: number;
   behavior: string;
   risk: 'safe' | 'caution' | 'danger';
   object_type: 'car' | 'pedestrian' | 'truck' | 'cyclist';
   risk_reason?: string;
   suggested_action?: string;
+  ttc?: number;
+  speed?: number;
+  velocity?: { vx: number; vy: number };
+  acceleration?: { ax: number; ay: number };
+  heading?: number;
   qnn: TrajectoryPoint[];
   final: TrajectoryPoint[];
   collision_warning: number[];
@@ -49,6 +55,12 @@ export interface TelemetryFrame {
   ego?: { speed: number; acceleration: number };
   scenario: Scenario;
   logs: string[];
+  // V7 fields
+  pipeline?: string;
+  best_model?: string;
+  model_ranking?: string[];
+  detection_count?: number;
+  track_count?: number;
 }
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected' | 'error';

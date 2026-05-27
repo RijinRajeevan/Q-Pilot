@@ -5,7 +5,7 @@ import type { Scenario } from '../store/telemetryStore';
 const BASE_WS = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/telemetry';
 const MAX_RETRIES = 10;
 const BASE_RETRY_DELAY = 1000;
-const FRAME_INTERVAL_MS = 50;
+const FRAME_INTERVAL_MS = 66; // ~15 FPS cap on React rerenders
 
 export function useWebSocket() {
   const activeScenario = useTelemetryStore((s) => s.activeScenario);
@@ -88,7 +88,7 @@ export function useWebSocket() {
     }
     useTelemetryStore.getState().resetRetry();
     
-    const timer = setTimeout(connect, 100);
+    const timer = setTimeout(connect, 300);  // Allow old WS to fully close
     return () => clearTimeout(timer);
   }, [activeScenario]);
 }

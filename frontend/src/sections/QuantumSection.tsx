@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useRef, memo } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { useTelemetryStore } from '../store/telemetryStore';
 
@@ -35,35 +35,47 @@ function CNOT({ x, ctrl, tgt }: { x: number; ctrl: number; tgt: number }) {
 
 // 4 qubits, rows at y=60,110,160,210
 const QUBITS = [60, 110, 160, 210];
-const W = 700, H = 270;
+const W = 780, H = 270;
 
-// Static circuit layout
+// V7 Circuit layout — matches the real qnn_regressor.py architecture:
+// RY angle encoding → Variational Layer 1 (RY+RZ) → CNOT ring → Var Layer 2 (RY+RZ) → CNOT ring → Measurement
 const CIRCUIT = [
-  // Column 1: Hadamard (encoded as RX 90°)
-  { type: 'gate', col: 120, qIdx: 0, label: 'H',  color: '#3E6AE1' },
-  { type: 'gate', col: 120, qIdx: 1, label: 'H',  color: '#3E6AE1' },
-  { type: 'gate', col: 120, qIdx: 2, label: 'H',  color: '#3E6AE1' },
-  { type: 'gate', col: 120, qIdx: 3, label: 'H',  color: '#3E6AE1' },
-  // Column 2: RX angle encoding
-  { type: 'gate', col: 220, qIdx: 0, label: 'RX', color: '#059669' },
-  { type: 'gate', col: 220, qIdx: 1, label: 'RY', color: '#059669' },
-  { type: 'gate', col: 220, qIdx: 2, label: 'RX', color: '#059669' },
-  { type: 'gate', col: 220, qIdx: 3, label: 'RY', color: '#059669' },
-  // Column 3: CNOT entanglement
-  { type: 'cnot', col: 330, ctrl: 0, tgt: 1 },
-  { type: 'cnot', col: 330, ctrl: 2, tgt: 3 },
-  // Column 4: variational layer
-  { type: 'gate', col: 430, qIdx: 0, label: 'RZ', color: '#7C3AED' },
-  { type: 'gate', col: 430, qIdx: 1, label: 'RZ', color: '#7C3AED' },
-  { type: 'gate', col: 430, qIdx: 2, label: 'RX', color: '#7C3AED' },
-  { type: 'gate', col: 430, qIdx: 3, label: 'RY', color: '#7C3AED' },
-  // Column 5: second CNOT
-  { type: 'cnot', col: 540, ctrl: 1, tgt: 2 },
-  // Column 6: measurement
-  { type: 'gate', col: 640, qIdx: 0, label: 'M', color: '#171A20' },
-  { type: 'gate', col: 640, qIdx: 1, label: 'M', color: '#171A20' },
-  { type: 'gate', col: 640, qIdx: 2, label: 'M', color: '#171A20' },
-  { type: 'gate', col: 640, qIdx: 3, label: 'M', color: '#171A20' },
+  // Column 1: RY angle encoding (input features)
+  { type: 'gate', col: 80,  qIdx: 0, label: 'RY', color: '#059669' },
+  { type: 'gate', col: 80,  qIdx: 1, label: 'RY', color: '#059669' },
+  { type: 'gate', col: 80,  qIdx: 2, label: 'RY', color: '#059669' },
+  { type: 'gate', col: 80,  qIdx: 3, label: 'RY', color: '#059669' },
+  // Column 2: Variational Layer 1 (RY + RZ rotations)
+  { type: 'gate', col: 170, qIdx: 0, label: 'RY', color: '#7C3AED' },
+  { type: 'gate', col: 170, qIdx: 1, label: 'RY', color: '#7C3AED' },
+  { type: 'gate', col: 170, qIdx: 2, label: 'RY', color: '#7C3AED' },
+  { type: 'gate', col: 170, qIdx: 3, label: 'RY', color: '#7C3AED' },
+  { type: 'gate', col: 230, qIdx: 0, label: 'RZ', color: '#7C3AED' },
+  { type: 'gate', col: 230, qIdx: 1, label: 'RZ', color: '#7C3AED' },
+  { type: 'gate', col: 230, qIdx: 2, label: 'RZ', color: '#7C3AED' },
+  { type: 'gate', col: 230, qIdx: 3, label: 'RZ', color: '#7C3AED' },
+  // Column 3: CNOT ring entanglement (q0→q1, q1→q2, q2→q3, q3→q0)
+  { type: 'cnot', col: 310, ctrl: 0, tgt: 1 },
+  { type: 'cnot', col: 360, ctrl: 2, tgt: 3 },
+  { type: 'cnot', col: 340, ctrl: 1, tgt: 2 },
+  // Column 4: Variational Layer 2 (RY + RZ)
+  { type: 'gate', col: 430, qIdx: 0, label: 'RY', color: '#DC2626' },
+  { type: 'gate', col: 430, qIdx: 1, label: 'RY', color: '#DC2626' },
+  { type: 'gate', col: 430, qIdx: 2, label: 'RY', color: '#DC2626' },
+  { type: 'gate', col: 430, qIdx: 3, label: 'RY', color: '#DC2626' },
+  { type: 'gate', col: 490, qIdx: 0, label: 'RZ', color: '#DC2626' },
+  { type: 'gate', col: 490, qIdx: 1, label: 'RZ', color: '#DC2626' },
+  { type: 'gate', col: 490, qIdx: 2, label: 'RZ', color: '#DC2626' },
+  { type: 'gate', col: 490, qIdx: 3, label: 'RZ', color: '#DC2626' },
+  // Column 5: Second CNOT ring
+  { type: 'cnot', col: 570, ctrl: 0, tgt: 1 },
+  { type: 'cnot', col: 620, ctrl: 2, tgt: 3 },
+  { type: 'cnot', col: 600, ctrl: 1, tgt: 2 },
+  // Column 6: Measurement (Z expectation values)
+  { type: 'gate', col: 720, qIdx: 0, label: '⟨Z⟩', color: '#171A20' },
+  { type: 'gate', col: 720, qIdx: 1, label: '⟨Z⟩', color: '#171A20' },
+  { type: 'gate', col: 720, qIdx: 2, label: '⟨Z⟩', color: '#171A20' },
+  { type: 'gate', col: 720, qIdx: 3, label: '⟨Z⟩', color: '#171A20' },
 ];
 
 function QuantumCircuitSVG({ animated }: { animated: boolean }) {
@@ -83,6 +95,14 @@ function QuantumCircuitSVG({ animated }: { animated: boolean }) {
         </g>
       ))}
 
+      {/* Column labels */}
+      <text x={80}  y={30} textAnchor="middle" fontSize={9} fill="#5C5E62" fontFamily="Inter" fontWeight="600">INPUT</text>
+      <text x={200} y={30} textAnchor="middle" fontSize={9} fill="#7C3AED" fontFamily="Inter" fontWeight="600">VAR LAYER 1</text>
+      <text x={335} y={30} textAnchor="middle" fontSize={9} fill="#6366F1" fontFamily="Inter" fontWeight="600">ENTANGLE</text>
+      <text x={460} y={30} textAnchor="middle" fontSize={9} fill="#DC2626" fontFamily="Inter" fontWeight="600">VAR LAYER 2</text>
+      <text x={595} y={30} textAnchor="middle" fontSize={9} fill="#6366F1" fontFamily="Inter" fontWeight="600">ENTANGLE</text>
+      <text x={720} y={30} textAnchor="middle" fontSize={9} fill="#171A20" fontFamily="Inter" fontWeight="600">MEASURE</text>
+
       {/* Circuit elements */}
       {CIRCUIT.map((el, i) => {
         if (el.type === 'gate') {
@@ -92,7 +112,7 @@ function QuantumCircuitSVG({ animated }: { animated: boolean }) {
               key={i}
               initial={animated ? { opacity: 0, scale: 0.5 } : { opacity: 1, scale: 1 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.04, duration: 0.3 }}
+              transition={{ delay: i * 0.03, duration: 0.3 }}
             >
               <Gate x={el.col!} y={y} label={el.label!} color={el.color!} />
             </motion.g>
@@ -106,7 +126,7 @@ function QuantumCircuitSVG({ animated }: { animated: boolean }) {
               key={i}
               initial={animated ? { opacity: 0 } : { opacity: 1 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.04, duration: 0.3 }}
+              transition={{ delay: i * 0.03, duration: 0.3 }}
             >
               <CNOT x={el.col!} ctrl={cy} tgt={ty} />
             </motion.g>
@@ -118,12 +138,14 @@ function QuantumCircuitSVG({ animated }: { animated: boolean }) {
   );
 }
 
-// ── Info cards ──────────────────────────────────────────────
+// ── Info cards — matches real qnn_regressor.py ──────────────
 const INFO = [
   { label: 'Architecture', value: '4-Qubit VQC', sub: 'Variational Quantum Circuit' },
-  { label: 'Encoding',     value: 'Angle',       sub: 'RX/RY rotation on kinematics' },
-  { label: 'Entanglement', value: 'CNOT × 2',    sub: 'q0↔q1  and  q1↔q2' },
-  { label: 'Measurement',  value: '18 outputs',  sub: '3 trajectory waypoints × 6 features' },
+  { label: 'Encoding',     value: 'RY Angle',    sub: 'Feature → qubit rotation angle' },
+  { label: 'Entanglement', value: 'CNOT Ring',   sub: 'q0→q1→q2→q3→q0 (circular)' },
+  { label: 'Parameters',   value: '16 weights',  sub: '2 layers × 4 qubits × 2 (RY+RZ)' },
+  { label: 'Optimizer',    value: 'COBYLA',      sub: 'Constrained optimization' },
+  { label: 'Measurement',  value: '⟨Z⟩ × 4',     sub: 'Expectation values on all qubits' },
 ];
 
 export default function QuantumSection() {
@@ -147,11 +169,11 @@ export default function QuantumSection() {
           className="mb-12 max-w-2xl"
         >
           <span className="tesla-label">Quantum Circuit</span>
-          <h2 className="tesla-h2 mt-2">How the 4-Qubit VQC Works</h2>
+          <h2 className="tesla-h2 mt-2">Real 4-Qubit Variational Quantum Circuit</h2>
           <p className="tesla-body mt-3">
-            Kinematic features (velocity, position, acceleration) are angle-encoded into qubit rotations.
-            CNOT gates entangle qubits, enabling the circuit to explore exponentially many trajectory
-            hypotheses simultaneously.
+            Built with Qiskit — 4 input features are angle-encoded via RY gates, then processed through
+            2 variational layers (RY+RZ rotations) with CNOT ring entanglement. The circuit uses 16 trainable
+            parameters optimized with COBYLA on NGSIM trajectory data.
           </p>
         </motion.div>
 
@@ -185,7 +207,7 @@ export default function QuantumSection() {
         </div>
 
         {/* Info grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-10">
           {INFO.map(({ label, value, sub }) => (
             <motion.div
               key={label}
@@ -205,11 +227,11 @@ export default function QuantumSection() {
         {/* Legend */}
         <div className="flex flex-wrap gap-5 mt-8">
           {[
-            { color: '#3E6AE1', label: 'Hadamard / Basis prep' },
-            { color: '#059669', label: 'Angle encoding (kinematics)' },
-            { color: '#7C3AED', label: 'Variational layer' },
-            { color: '#6366F1', label: 'CNOT entanglement' },
-            { color: '#171A20', label: 'Measurement' },
+            { color: '#059669', label: 'RY angle encoding (input features)' },
+            { color: '#7C3AED', label: 'Variational Layer 1 (RY+RZ)' },
+            { color: '#DC2626', label: 'Variational Layer 2 (RY+RZ)' },
+            { color: '#6366F1', label: 'CNOT ring entanglement' },
+            { color: '#171A20', label: '⟨Z⟩ expectation measurement' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ background: color }} />

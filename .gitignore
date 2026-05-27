@@ -27,5 +27,11 @@ node_modules/
 
 # Datasets and Models
 *.csv
-data/models/
-data/ngsim.csv
+data/
+models/
+results/
+
+# Videos
+*.mp4
+*.avi
+frontend/public/videos/

@@ -58,16 +58,20 @@ interface ModelResult {
   name: string;
   r2: number;
   mse: number;
+  rmse: number;
   ade: number;
+  fde: number;
   color: string;
   icon: string;
+  note?: string;
 }
 
 const MODEL_COLORS: Record<string, { color: string; icon: string }> = {
-  'QNN (Qiskit VQC)':   { color: '#6366F1', icon: '⚛️' },
-  'Random Forest':       { color: '#8B5CF6', icon: '🌲' },
-  'Decision Tree':       { color: '#10B981', icon: '🌳' },
-  'Linear Regression':   { color: '#9CA3AF', icon: '📈' },
+  'QNN (4-Qubit VQC)':   { color: '#6366F1', icon: '⚛️' },
+  'LSTM':                 { color: '#EC4899', icon: '🧠' },
+  'GRU':                  { color: '#F97316', icon: '⚡' },
+  'Random Forest':        { color: '#8B5CF6', icon: '🌲' },
+  'Linear Regression':    { color: '#9CA3AF', icon: '📈' },
 };
 
 export default function ModelComparisonSection() {
@@ -83,11 +87,13 @@ export default function ModelComparisonSection() {
       .catch(() => setLoading(false));
   }, [activeScenario]);
 
-  // Extract from API response
-  const qnn = apiData?.qnn ?? { r2: 0, mse: 0, ade: 0 };
-  const rf  = apiData?.random_forest ?? { r2: 0, mse: 0, ade: 0 };
-  const dt  = apiData?.decision_tree ?? { r2: 0, mse: 0, ade: 0 };
-  const lr  = apiData?.linear_regression ?? { r2: 0, mse: 0, ade: 0 };
+  // Extract from API response — V7 now returns 5 models
+  const qnn  = apiData?.qnn ?? { r2: 0, mse: 0, rmse: 0, ade: 0, fde: 0, name: 'QNN (4-Qubit VQC)' };
+  const lstm = apiData?.lstm ?? { r2: 0, mse: 0, rmse: 0, ade: 0, fde: 0, name: 'LSTM' };
+  const gru  = apiData?.gru ?? { r2: 0, mse: 0, rmse: 0, ade: 0, fde: 0, name: 'GRU' };
+  const rf   = apiData?.random_forest ?? { r2: 0, mse: 0, rmse: 0, ade: 0, fde: 0, name: 'Random Forest' };
+  const lr   = apiData?.linear_regression ?? { r2: 0, mse: 0, rmse: 0, ade: 0, fde: 0, name: 'Linear Regression' };
+
   const winner = apiData?.winner ?? '—';
   const improvement = apiData?.improvement_pct ?? 0;
   const sampleSize = apiData?.sample_size ?? 0;
@@ -96,11 +102,24 @@ export default function ModelComparisonSection() {
   const trainingTime = apiData?.training_time ?? 0;
 
   const models: ModelResult[] = [
-    { name: 'QNN (Qiskit VQC)', r2: qnn.r2, mse: qnn.mse, ade: qnn.ade, ...MODEL_COLORS['QNN (Qiskit VQC)'] },
-    { name: 'Random Forest',     r2: rf.r2,  mse: rf.mse,  ade: rf.ade,  ...MODEL_COLORS['Random Forest'] },
-    { name: 'Decision Tree',     r2: dt.r2,  mse: dt.mse,  ade: dt.ade,  ...MODEL_COLORS['Decision Tree'] },
-    { name: 'Linear Regression', r2: lr.r2,  mse: lr.mse,  ade: lr.ade,  ...MODEL_COLORS['Linear Regression'] },
+    { name: qnn.name ?? 'QNN (4-Qubit VQC)', r2: qnn.r2, mse: qnn.mse, rmse: qnn.rmse ?? 0, ade: qnn.ade, fde: qnn.fde ?? 0, note: qnn.note, ...MODEL_COLORS['QNN (4-Qubit VQC)'] },
+    { name: lstm.name ?? 'LSTM',              r2: lstm.r2, mse: lstm.mse, rmse: lstm.rmse ?? 0, ade: lstm.ade, fde: lstm.fde ?? 0, note: lstm.note, ...MODEL_COLORS['LSTM'] },
+    { name: gru.name ?? 'GRU',               r2: gru.r2, mse: gru.mse, rmse: gru.rmse ?? 0, ade: gru.ade, fde: gru.fde ?? 0, note: gru.note, ...MODEL_COLORS['GRU'] },
+    { name: rf.name ?? 'Random Forest',       r2: rf.r2, mse: rf.mse, rmse: rf.rmse ?? 0, ade: rf.ade, fde: rf.fde ?? 0, ...MODEL_COLORS['Random Forest'] },
+    { name: lr.name ?? 'Linear Regression',   r2: lr.r2, mse: lr.mse, rmse: lr.rmse ?? 0, ade: lr.ade, fde: lr.fde ?? 0, ...MODEL_COLORS['Linear Regression'] },
   ];
+
+  // Tab state for metric panels
+  const [metricTab, setMetricTab] = useState<'r2' | 'mse' | 'ade' | 'fde'>('r2');
+
+  const metricConfig = {
+    r2:  { label: 'R² Score', sub: '(higher = better)', max: 1.0, key: 'r2' as const },
+    mse: { label: 'MSE', sub: '(lower = better)', max: Math.max(...models.map(x => x.mse), 0.01), key: 'mse' as const },
+    ade: { label: 'ADE', sub: '(avg displacement error)', max: Math.max(...models.map(x => x.ade), 0.01), key: 'ade' as const },
+    fde: { label: 'FDE', sub: '(final displacement error)', max: Math.max(...models.map(x => x.fde), 0.01), key: 'fde' as const },
+  };
+
+  const activeMetric = metricConfig[metricTab];
 
   return (
     <section id="models" className="bg-white section-pad border-t border-[#E0E0E0]">
@@ -113,10 +132,10 @@ export default function ModelComparisonSection() {
           className="mb-10 max-w-2xl"
         >
           <span className="tesla-label">Model Comparison</span>
-          <h2 className="tesla-h2 mt-2">QNN vs Classical Models</h2>
+          <h2 className="tesla-h2 mt-2">QNN vs Classical vs Deep Learning</h2>
           <p className="tesla-body mt-3">
-            All metrics computed from real NGSIM trajectory data filtered per scenario.
-            Models are trained on {sampleSize.toLocaleString()} data points with 80/20 train-test split.
+            Five models trained on real NGSIM trajectory data — including GRU, LSTM, and a real 4-Qubit VQC.
+            All metrics computed from {sampleSize.toLocaleString()} data points with 80/20 train-test split.
           </p>
         </motion.div>
 
@@ -133,7 +152,7 @@ export default function ModelComparisonSection() {
             {loading ? (
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-[#6366F1] font-medium">Training models for {activeScenario.replace('_', ' ')}...</span>
+                <span className="text-sm text-[#6366F1] font-medium">Training 5 models for {activeScenario.replace('_', ' ')}...</span>
               </div>
             ) : (
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -168,75 +187,58 @@ export default function ModelComparisonSection() {
           </motion.div>
         </AnimatePresence>
 
-        {/* R² + MSE + ADE side-by-side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-          {/* R² bars */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`r2-${activeScenario}`}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-[#FAFAFA] border border-[#E0E0E0] rounded-2xl p-5"
+        {/* Metric tabs */}
+        <div className="flex gap-2 mb-6">
+          {(['r2', 'mse', 'ade', 'fde'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMetricTab(tab)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border
+                ${metricTab === tab
+                  ? 'bg-[#171A20] text-white border-[#171A20]'
+                  : 'bg-white text-[#5C5E62] border-[#E0E0E0] hover:border-[#171A20]'
+                }`}
             >
-              <h3 className="text-sm font-semibold text-[#171A20] mb-5">
-                R² Score <span className="text-[#5C5E62] text-xs font-normal">(higher = better)</span>
-              </h3>
-              <div className="flex flex-col gap-4">
-                {models.map((m, i) => (
-                  <Bar key={m.name} label={m.name} value={m.r2} max={1.0} color={m.color} delay={i * 0.08} />
-                ))}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* MSE bars */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`mse-${activeScenario}`}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-[#FAFAFA] border border-[#E0E0E0] rounded-2xl p-5"
-            >
-              <h3 className="text-sm font-semibold text-[#171A20] mb-5">
-                MSE <span className="text-[#5C5E62] text-xs font-normal">(lower = better)</span>
-              </h3>
-              <div className="flex flex-col gap-4">
-                {models.map((m, i) => (
-                  <Bar key={m.name} label={m.name} value={m.mse} max={Math.max(...models.map(x => x.mse), 0.01)} color={m.color} delay={i * 0.08} />
-                ))}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* ADE bars */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`ade-${activeScenario}`}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-[#FAFAFA] border border-[#E0E0E0] rounded-2xl p-5"
-            >
-              <h3 className="text-sm font-semibold text-[#171A20] mb-5">
-                ADE <span className="text-[#5C5E62] text-xs font-normal">(avg displacement error)</span>
-              </h3>
-              <div className="flex flex-col gap-4">
-                {models.map((m, i) => (
-                  <Bar key={m.name} label={m.name} value={m.ade} max={Math.max(...models.map(x => x.ade), 0.01)} color={m.color} delay={i * 0.08} />
-                ))}
-              </div>
-            </motion.div>
-          </AnimatePresence>
+              {metricConfig[tab].label}
+            </button>
+          ))}
         </div>
 
+        {/* Metric bars (single panel, toggles by tab) */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${metricTab}-${activeScenario}`}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-[#FAFAFA] border border-[#E0E0E0] rounded-2xl p-6 mb-10"
+          >
+            <h3 className="text-sm font-semibold text-[#171A20] mb-5">
+              {activeMetric.label} <span className="text-[#5C5E62] text-xs font-normal">{activeMetric.sub}</span>
+            </h3>
+            <div className="flex flex-col gap-4">
+              {models.map((m, i) => (
+                <Bar
+                  key={m.name}
+                  label={m.name}
+                  value={m[activeMetric.key]}
+                  max={activeMetric.max}
+                  color={m.color}
+                  delay={i * 0.06}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
         {/* Model detail cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {models.map((m, idx) => (
             <motion.div
               key={m.name}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: idx * 0.08 }}
+              transition={{ delay: idx * 0.06 }}
               whileHover={{ y: -3 }}
               className={`bg-white rounded-2xl border p-5 transition-shadow hover:shadow-md relative
                 ${winner === m.name ? 'border-[#6366F1]/50 bg-[#FAFAFF] ring-1 ring-[#6366F1]/20' : 'border-[#E0E0E0]'}`}
@@ -252,14 +254,20 @@ export default function ModelComparisonSection() {
               </div>
               {[
                 { l: 'R² Score', v: m.r2.toFixed(4) },
-                { l: 'MSE', v: m.mse.toFixed(4) },
+                { l: 'RMSE', v: m.rmse.toFixed(4) },
                 { l: 'ADE', v: m.ade.toFixed(4) },
+                { l: 'FDE', v: m.fde.toFixed(4) },
               ].map(({ l, v }) => (
                 <div key={l} className="flex justify-between text-xs py-1.5 border-t border-[#F4F4F4]">
                   <span className="text-[#5C5E62]">{l}</span>
                   <span className="font-mono font-bold text-[#171A20]">{v}</span>
                 </div>
               ))}
+              {m.note && (
+                <div className="mt-2 text-[9px] text-[#6366F1] font-medium bg-[#EEF2FF] px-2 py-1 rounded">
+                  {m.note}
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
