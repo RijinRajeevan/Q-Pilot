@@ -2,7 +2,6 @@
 
 Q-Pilot V4 is a research-grade, real-time autonomous simulation engine tracking physical vehicles on the road using advanced Computer Vision, alongside an explainable AI pipeline that contrasts **Classical LSTMs** against **Quantum Neural Networks (QNNs)** in real-time.
 
-![Q-Pilot V4 Interface](https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4) *(Video processing mapped via CV)*
 
 ## 🧠 Architectural Overview
 
