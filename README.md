@@ -1,16 +1,21 @@
-# 🚦 Q-Pilot Live V4: Explainable Quantum Autonomous Engine
+# 🚦 Q-Pilot: Quantum-Enhanced Vehicle Trajectory Prediction System
 
-Q-Pilot V4 is a research-grade, real-time autonomous simulation engine tracking physical vehicles on the road using advanced Computer Vision, alongside an explainable AI pipeline that contrasts **Classical LSTMs** against **Quantum Neural Networks (QNNs)** in real-time.
+Q-Pilot is a production-quality, real-time autonomous simulation engine designed for vehicle trajectory prediction. It features a complete Explainable AI pipeline that contrasts **Classical Machine Learning Models (Linear Regression, Random Forest, GRU, LSTM)** against **Quantum Neural Networks (4-Qubit VQCs)** in real-time.
 
+By processing the real NGSIM trajectory dataset and mapping physical scenarios (highway cruise, urban traffic, lane changes, emergency braking), Q-Pilot proves the robust capabilities of quantum models over classical counterparts when predicting nonlinear dynamics and kinematics.
+
+---
 
 ## 🧠 Architectural Overview
 
-Our architecture ditches synthetic data and processes real physical pixels into quantum geometries executing at **30 FPS**.
-1. **Perception**: A local `YOLOv8n` + `DeepSORT` stack tracks cars.
-2. **Homography Transforms**: Camera perspective is mathematically flattened to absolute 2D road space vectors (`cv2.getPerspectiveTransform`).
-3. **Tracking Buffer**: Spatial behaviors form K=5 historical paths simulating instantaneous relative velocities.
-4. **Bayesian PyTorch Stack**: We execute 5x parallel **Monte Carlo** forward tensor passes over `LSTM` layers preserving Dropouts to find absolute statistical **Variance**.
-5. **Contextual QNN Contexts**: If targets undergo non-linear trajectory anomalies, `Qiskit` 4-qubit entangled nodes process the inputs dynamically against the LSTM paths.
+Our architecture processes real physical vectors and kinematics:
+1. **Data Pipeline**: Automated feature engineering and scaling over the real NGSIM dataset.
+2. **Backend (FastAPI)**: Robust Python inference engine supporting `uvicorn` WebSockets, real-time trajectory simulation, and model telemetry serving.
+3. **Frontend (React/Vite)**: Real-time UI built with TailwindCSS, visualizing predictions, uncertainty cones, and live metrics.
+4. **Classical Models**: Fully implemented Linear Regression, Random Forest, GRU, and LSTM tracking sequences.
+5. **Quantum Engine (QNN)**: 4-Qubit Variational Quantum Circuit (VQC) implemented via `qiskit` measuring phase angles for accurate non-linear predictions. 
+
+*(Note: Prior versions used a Streamlit dashboard, which is now obsolete. The system now runs exclusively via FastAPI & Vite.)*
 
 ---
 
@@ -32,37 +37,47 @@ pip install -r requirements.txt
 ```
 
 ### 2. Prepare the Frontend
-Navigate into the React UI bucket and install the interface nodes:
+Navigate into the React UI directory and install the required node packages:
 ```bash
 cd frontend
 npm install
 cd ..
 ```
 
-### 3. Provide a Dataset (Video Feeding)
-Q-Pilot processes physical video files dynamically. 
-1. Create a `data/videos/` directory in the root if it does not exist.
-2. Download any standard Dashcam `.mp4` file and place it inside `data/videos/`.
-3. Rename the file exactly to: `highway.mp4`.
-
-*(If you fail to provide a video file, the system will automatically fall back to activating your local webcam!)*
+### 3. Model Training (Optional but recommended)
+You can retrain all 5 models (LR, RF, GRU, LSTM, QNN) on the dataset using the unified training script. This script automatically handles sequence building, hyperparameter tuning, and stores the artifacts in the `/models/` directory.
+```bash
+python train_all_models.py
+```
 
 ### 4. Boot the Orchestrator!
 Everything is orchestrated from a single execution script. Make sure your Python virtual environment is activated before running!
 ```bash
 python main.py
 ```
-> The architecture pulls the YOLO weights, locks the Vite interface, boots Uvicorn WebSockets under port `8000`, and opens the dashboard cleanly at `http://localhost:5174/`.
+> The script orchestrates both the Vite frontend (`npm run dev`) and FastAPI backend (`uvicorn`). The frontend will be available at `http://localhost:5173` and the API at `http://localhost:8000`. 
+> 
+> You can also run them independently using `python main.py --mode frontend` or `python main.py --mode backend`.
 
 ---
 
-## 🔬 Explainable Mechanics 
+## 🔬 Testing the System
+
+A robust unit testing suite is provided in the `/tests/` directory ensuring dataset synthesis, preprocessing pipelines, classical predictors, and utility metrics (ADE, FDE, RMSE) work correctly.
+
+Run the tests (make sure to use utf-8 encoding on Windows):
+```bash
+$env:PYTHONIOENCODING="utf-8"
+python tests/test_system.py
+```
+
+## 📊 Explainable Mechanics 
 
 Our pipeline acts as a pure mathematical dashboard highlighting exactly *why* Quantum Models provide stabilization in chaotic autonomous scenarios. 
 
-- **Prediction Cones:** The `React` frontend draws expanding track lines based purely on the generated `Monte-Carlo Variance` extracted per frame. High-uncertainty predictions draw visibly wider, chaotic cones.
-- **Learned Intent:** We discarded spatial hard-code threshold logic favoring a 3-layer `MLP Perceptron Classifier` rendering deep `Softmax` bounds declaring real-time physical intent (`Cruising`, `Braking`, `Aggressive Shift`).
-- **Benchmark Diagnostics:** Compare the Average Displacement Error (`ADE`) continuously matching LSTMs versus heavily entangled Quantum Subroutines dynamically in the HUD.
+- **Prediction Scenarios:** Compare models across realistic environments like High-speed Highways, Sharp Turns, and Emergency Brakes.
+- **Learned Intent:** Real-time intent classification with deep `Softmax` bounds declaring intent dynamically.
+- **Benchmark Diagnostics:** Compare the Average Displacement Error (`ADE`), Final Displacement Error (`FDE`), and Mean Squared Error (`MSE`) continuously matching LSTMs versus heavily entangled Quantum Subroutines dynamically in the HUD.
 
-## 🗑️ Code Audit Notice
-If migrating from V1 builds, note that `dashboard/` (Streamlit apps) and `.streamlit/` configs are 100% obsolete. The entire tracking geometry now executes completely decoupled inside `frontend/` (TailwindCSS/Vite) & `src/inference_engine.py`.
+---
+**Final Impact Statement**: Quantum Neural Networks demonstrate improved capability in capturing complex nonlinear vehicle motion patterns compared to classical machine learning models.
